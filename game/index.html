@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SKYLINE — Tactical FPS</title>
+<style>
+  :root {
+    --canvas: #090b10;
+    --surface: #131722;
+    --hairline: #222a38;
+    --ink: #f0ede6;
+    --muted: #828c9b;
+    --accent: #00e5ff;
+    --radius-panel: 6px;
+    --radius-control: 8px;
+    --font-ui: system-ui, -apple-system, sans-serif;
+    --font-readout: ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-ui);
+  }
+  #game, #game canvas { position: fixed; inset: 0; display: block; }
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+
+  #crosshair { position: fixed; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); }
+  #crosshair i { position: absolute; background: var(--ink); opacity: .85; }
+  #crosshair i:nth-child(1) { left: 10px; top: 0; width: 2px; height: 7px; }
+  #crosshair i:nth-child(2) { left: 10px; bottom: 0; width: 2px; height: 7px; }
+  #crosshair i:nth-child(3) { top: 10px; left: 0; height: 2px; width: 7px; }
+  #crosshair i:nth-child(4) { top: 10px; right: 0; height: 2px; width: 7px; }
+
+  #hitmarker { position: fixed; left: 50%; top: 50%; width: 26px; height: 26px; transform: translate(-50%, -50%) rotate(45deg); opacity: 0; transition: opacity 90ms linear; }
+  #hitmarker.on { opacity: 1; }
+  #hitmarker i { position: absolute; background: var(--accent); }
+  #hitmarker i:nth-child(1) { left: 12px; top: 0; width: 2px; height: 8px; }
+  #hitmarker i:nth-child(2) { left: 12px; bottom: 0; width: 2px; height: 8px; }
+  #hitmarker i:nth-child(3) { top: 12px; left: 0; height: 2px; width: 8px; }
+  #hitmarker i:nth-child(4) { top: 12px; right: 0; height: 2px; width: 8px; }
+
+  #ammo {
+    position: fixed;
+    right: 32px;
+    bottom: 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-family: var(--font-readout);
+    font-size: 56px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+  }
+  #ammo-reserve { font-size: 16px; color: var(--muted); }
+
+  #score {
+    position: fixed;
+    left: 32px;
+    top: 24px;
+    font-family: var(--font-readout);
+    font-size: 16px;
+    color: var(--muted);
+  }
+  #score b { color: var(--ink); }
+
+  #alive {
+    position: fixed;
+    left: 32px;
+    top: 48px;
+    font-family: var(--font-readout);
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(9, 11, 16, 0.88);
+    z-index: 50;
+  }
+  .overlay[hidden] { display: none; }
+  .panel {
+    width: min(460px, 100%);
+    padding: 32px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-panel);
+  }
+  .panel h1 {
+    margin: 0 0 8px;
+    font-size: 32px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+  .panel p {
+    margin: 0 0 24px;
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  #play {
+    font: inherit;
+    font-weight: 500;
+    padding: 12px 20px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-control);
+    background: var(--accent);
+    color: var(--canvas);
+    cursor: pointer;
+  }
+  #play:hover { background: var(--ink); border-color: var(--ink); }
+
+  .keys {
+    margin: 24px 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .keys li { display: flex; align-items: center; gap: 8px; }
+  .keys kbd {
+    min-width: 24px;
+    padding: 2px 6px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-panel);
+    font-family: var(--font-readout);
+    font-size: 12px;
+    color: var(--ink);
+    text-align: center;
+  }
+
+  #buy-menu {
+    position: fixed;
+    inset: 0;
+    background: rgba(9, 11, 16, 0.55);
+    display: none;
+    place-items: center;
+    z-index: 40;
+    font-family: var(--font-readout);
+  }
+  .buy-panel {
+    width: min(500px, 100%);
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    padding: 24px;
+    border-radius: var(--radius-panel);
+  }
+  .buy-panel h2 { margin: 0 0 16px; color: var(--accent); font-size: 20px; }
+</style>
+</head>
+<body>
+<div id="game"></div>
+
+<div id="hud" aria-hidden="true">
+  <div id="crosshair"><i></i><i></i><i></i><i></i></div>
+  <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
+  <div id="ammo"><span id="ammo-mag">12</span><span id="ammo-reserve">/ 36</span></div>
+  <div id="score">SCORE <b id="score-value">0 - 0</b></div>
+  <div id="alive">ASTRA 5 · UMBRA 5</div>
+</div>
+
+<div id="overlay" class="overlay" hidden>
+  <section class="panel" role="dialog" aria-modal="true">
+    <h1>SKYLINE</h1>
+    <p>Tactical FPS on Halcyon Roof. Plant the beacon at Site A or B. Eliminate Umbra forces.</p>
+    <button id="play" type="button">Click to deploy</button>
+    <ul class="keys">
+      <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move</li>
+      <li><kbd>Mouse</kbd> Look</li>
+      <li><kbd>Click</kbd> Fire</li>
+      <li><kbd>R</kbd> Reload</li>
+      <li><kbd>B</kbd> Buy Menu</li>
+      <li><kbd>E</kbd> Plant / Defuse Beacon</li>
+      <li><kbd>M</kbd> Mute Audio</li>
+    </ul>
+  </section>
+</div>
+
+<div id="buy-menu">
+  <div class="buy-panel">
+    <h2>BUY MENU (Press B to close)</h2>
+    <p>Weapons, Armor & Equipment</p>
+    <table style="width:100%; border-collapse:collapse; font-size:14px; margin-bottom:12px; color:var(--ink);">
+      <tr style="border-bottom:1px solid var(--hairline); text-align:left; color:var(--muted);">
+        <th style="padding:6px;">Item</th>
+        <th style="padding:6px; text-align:right;">Price</th>
+      </tr>
+      <tr><td style="padding:6px;">Sparrow P9</td><td style="padding:6px; text-align:right;">$0</td></tr>
+      <tr><td style="padding:6px;">Cicada-9 SMG</td><td style="padding:6px; text-align:right;">$1500</td></tr>
+      <tr style="border:1px solid var(--accent); background:rgba(0,229,255,0.1);"><td style="padding:6px;">Meridian MR-5</td><td style="padding:6px; text-align:right;">$2700 ◄ SELECTED</td></tr>
+      <tr><td style="padding:6px;">Nightowl .50</td><td style="padding:6px; text-align:right;">$4750</td></tr>
+      <tr><td style="padding:6px;">Breach-12</td><td style="padding:6px; text-align:right;">$2100</td></tr>
+      <tr><td style="padding:6px;">Armor Vest</td><td style="padding:6px; text-align:right;">$650</td></tr>
+      <tr><td style="padding:6px;">Helmet</td><td style="padding:6px; text-align:right;">$350</td></tr>
+      <tr><td style="padding:6px;">Nova Frag</td><td style="padding:6px; text-align:right;">$300</td></tr>
+      <tr><td style="padding:6px;">Haze Smoke</td><td style="padding:6px; text-align:right;">$250</td></tr>
+      <tr><td style="padding:6px;">Blitz Flash</td><td style="padding:6px; text-align:right;">$200</td></tr>
+    </table>
+    <div style="color:var(--muted);">Money: $4650</div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/three.module.min.js"
+  }
+}
+</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "shots": [
+    { "file": "1-start.jpg", "mode": "start" },
+    { "file": "2-play.jpg", "mode": "play" },
+    { "file": "3-buy.jpg", "mode": "buy" },
+    { "file": "4-end.jpg", "mode": "end" }
+  ]
+}
