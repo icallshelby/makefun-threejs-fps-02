@@ -2,7 +2,7 @@
 // Copies game/ and screenshots/ to /output and builds dossier.json.
 
 import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-threejs.ts';
 
@@ -13,7 +13,10 @@ mkdirSync(out, { recursive: true });
 cpSync(join(here, 'game'), join(out, 'game'), { recursive: true });
 mkdirSync(join(out, 'screenshots'), { recursive: true });
 if (existsSync(join(here, 'screenshots'))) {
-  cpSync(join(here, 'screenshots'), join(out, 'screenshots'), { recursive: true });
+  cpSync(join(here, 'screenshots'), join(out, 'screenshots'), {
+    recursive: true,
+    filter: (src) => !basename(src).startsWith('.'),
+  });
 }
 
 writeFileSync(
