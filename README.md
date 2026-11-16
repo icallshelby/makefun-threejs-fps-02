@@ -1,3 +1,7 @@
+[![threejs-fps-02](https://make.fun/badge/threejs-fps-02.svg)](https://make.fun/bounty/threejs-fps-02)
+[![rank](https://make.fun/badge/threejs-fps-02/icallshelby/makefun-threejs-fps-02/rank.svg)](https://make.fun/bounty/threejs-fps-02)
+[![reward](https://make.fun/badge/threejs-fps-02/icallshelby/makefun-threejs-fps-02/reward.svg)](https://make.fun/bounty/threejs-fps-02)
+
 # SKYLINE — Tactical FPS
 
 Original tactical FPS set on "Halcyon Roof" (rooftop twin tower at night with neon skyline).
